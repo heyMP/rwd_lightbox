@@ -1,0 +1,122 @@
+<?php
+// rwd_lightbox global variables
+define('RWD_LIGHTBOX_URL', 'https://github.com/heyMP/rwd_lightbox');
+
+/**
+ * Implements hook_init().
+ */
+function rwd_lightbox_init() {
+  $lib = rwd_lightbox_get_library();
+  if ($lib) {
+    // add library to all pages
+    drupal_add_js($lib);
+  }
+}
+
+/**
+ * Wrapper to get the library so it works with install profiles.
+ */
+function rwd_lightbox_get_library() {
+  // account for libraries not being available on install
+  if (function_exists('libraries_get_libraries')) {
+    $libraries = libraries_get_libraries();
+    if (isset($libraries['rwd_lightbox'])) {
+      return $libraries['rwd_lightbox'] .'/imagelightbox.js';
+    }
+  }
+  else {
+    $directory = 'libraries';
+    $profile = drupal_get_profile();
+    $config = conf_path();
+    $lib = 'imagelightbox/imagelightbox.js';
+    // look in install profile
+    if (file_exists("profiles/$profile/$directory/$lib")) {
+      return "profiles/$profile/$directory/$lib";
+    }
+    // look in sites all
+    // Always search sites/all/*.
+    $searchdir[] = 'sites/all/' . $directory ;
+    if (file_exists("sites/all/$directory/$lib")) {
+      return "sites/all/$directory/$lib";
+    }
+    // look in a local domain as last resort
+    // Also search sites/<domain>/*.
+    if (file_exists("$config/$directory/$lib")) {
+      return "$config/$directory/$lib";
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function rwd_lightbox_field_formatter_info() {
+  return array(
+    'rwd_lightbox_formatter' => array( //Machine name of the formatter
+      'label' => t('Responsive Lightbox'),
+      'field types' => array('image'), //This will only be available to text fields
+      'settings'  => array( //Array of the settings we'll create
+        'thumbnail_size' => 'square_thumbnail', //give a default value for when the form is first loaded
+        'large_size' => 'article_sidebar_image', //ditto
+      ),
+    ),
+  );
+}
+
+function rwd_lightbox_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  //This gets the view_mode where our settings are stored
+  $display = $instance['display'][$view_mode];
+  //This gets the actual settings
+  $settings = $display['settings'];
+  //Initialize the element variable
+  $element = array();
+  //Get a list of image styles
+  $image_styles = array();
+  foreach (image_styles() as $name => $style) {
+    $image_styles[$name] = $name;
+  }
+
+  //Add your select box
+  $element['thumbnail_size'] = array(
+    '#type'           => 'select',                           // Use a select box widget
+    '#title'          => t('Thumbnail image size'),                   // Widget label
+    '#default_value'  => $settings['thumbnail_size'],              // Get the value if it's already been set
+    '#options'        => $image_styles
+  );
+  $element['large_size'] = array(
+    '#type'           => 'select',                           // Use a select box widget
+    '#title'          => t('Large image size'),                   // Widget label
+    '#default_value'  => $settings['large_size'],              // Get the value if it's already been set
+    '#options'        => $image_styles
+  );
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function rwd_lightbox_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array(); // Initialize the var
+  $settings = $display['settings']; // get the settings
+  $large_size = $settings['large_size'];
+
+  foreach ($items as $delta => $item) {
+    if ($index === NULL || $index === $delta) {
+      // Get the image path of the $large_size image style
+      $large_image_path = image_style_url($large_size, $item['uri']);
+
+      $element[$delta] = array(
+        '#theme' => 'image_formatter',
+        '#item' => $item,
+        '#image_style' => $settings['thumbnail_size'],
+        '#path' => isset($uri) ? $uri : '',
+        '#prefix' => '<a class="rwd-lightbox" href="' . $large_image_path . '">',
+        '#suffix' => '</a>'
+      );
+    }
+  }
+
+  return $element;
+}

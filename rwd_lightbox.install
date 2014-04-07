@@ -1,0 +1,30 @@
+<?php
+/**
+ * @file
+ * Install file for rwd_lightbox module.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function rwd_lightbox_requirements($phase) {
+  module_load_include('module', 'rwd_lightbox');
+  $requirements = array();
+  $requirements['rwd_lightbox'] = array(
+    'title' => 'Responsive Image Lightbox library',
+  );
+  switch ($phase) {
+    case 'install':
+    case 'runtime':
+      $lib = rwd_lightbox_get_library();
+      if (!$lib) {
+        $requirements['rwd_lightbox']['description'] = 'rwd_lightbox: Could not locate the imagelightbox.js library. Please download the latest version of the library from '. l(RWD_LIGHTBOX_URL, RWD_LIGHTBOX_URL) .', unzip the package and place it in your libraries directory under the name rwd_lightbox.';
+        $requirements['rwd_lightbox']['severity'] = REQUIREMENT_ERROR;
+      }
+      else {
+        $requirements['rwd_lightbox']['value'] = 'Installed correctly';
+        $requirements['rwd_lightbox']['severity'] = REQUIREMENT_OK;
+      }
+  }
+  return $requirements;
+}

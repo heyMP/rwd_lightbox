@@ -1,0 +1,5 @@
+name = Responsive Lightbox
+description = A field formatter for the Responsive Lightbox jQuery plugin
+package = Custom
+core = 7.x
+dependencies[] = libraries
